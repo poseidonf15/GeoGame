@@ -8,24 +8,32 @@ WIDTH, HEIGHT = 500, 500
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
 
 class Buttons:
+    """Represents buttons logic"""
     buttons = []
     def __init__(self, center_position, pasive_image, active_image, scale, function):
-        self.image = pygame.transform.scale_by(pasive_image, scale)
-        self.active_image = pygame.transform.scale_by(active_image, scale)
+        """Initialize the button with position, image, image after click, the scale of the image and their function"""
+        self.image = pasive_image
+        self.active_image = active_image
+        self.scale = scale
         self.function = function
-        self.rect = self.image.get_rect(center=center_position)
+        self.position = center_position
+        self.rect = pygame.transform.scale_by(self.image , scale).get_rect(center=center_position)
         Buttons.buttons.append(self)
         self.active = False
+        self.hovered = False
 
-    @staticmethod
-    def draw():
-        for button in Buttons.buttons:
-            if not button.active:
-                screen.blit(button.image, button.rect)
-            else:
-                screen.blit(button.active_image, button.rect)
+    def draw(self):
+        """Function to draw the buttons"""
+        current_scale = self.scale + (int(self.hovered) * 0.25)
+        if self.active:
+            screen.blit(pygame.transform.scale_by(self.active_image, current_scale),
+                        pygame.transform.scale_by(self.active_image , current_scale).get_rect(center=self.position))
+        else:
+            screen.blit(pygame.transform.scale_by(self.image , current_scale),
+                        pygame.transform.scale_by(self.image , current_scale).get_rect(center=self.position))
 
 def answer_entering():
+    """The 'Enter' button function"""
     global apos, bpos, cpos, result, user_text
     if user_text and int(user_text) == result:
         apos, bpos, cpos, result = triangle_create(300)
@@ -64,6 +72,7 @@ Buttons((250,473),
         5, answer_entering)
 
 def background_animation():
+    """Function for the background movement animation"""
     global background_rect, background2_rect
     if background_rect.right <= 0: background_rect.left = 500
     if background2_rect.right <= 0: background2_rect.left = 500
@@ -71,6 +80,7 @@ def background_animation():
     background2_rect.left -= 1
 
 def triangle_create(screen_size):
+    """Function to create a new triagle on the screen"""
     a = (random.choice(range((screen_size // 20), screen_size, (screen_size // 20))), random.choice(range((screen_size // 20), screen_size, (screen_size // 20))))
     b = (a[0], random.choice(list(range((screen_size // 20), a[1], (screen_size // 20))) + list(range(a[1] + (screen_size // 20), screen_size, (screen_size // 20)))))
     c = (random.choice(list(range((screen_size // 20), a[0], (screen_size // 20))) + list(range(a[0] + (screen_size // 20), screen_size, (screen_size // 20)))), a[1])
@@ -81,6 +91,7 @@ apos, bpos, cpos, result = triangle_create(300)
 print(result)
 
 def to_coordinadtes(pos):
+    """Function to translate the triangle position on the screen into graph positions"""
     return (pos[0] - 150) // 15, (pos[1] - 150) // -15
 
 clock = pygame.time.Clock()
@@ -111,6 +122,11 @@ while running:
                 user_text += event.unicode
             elif event.key == pygame.K_BACKSPACE:
                 user_text = user_text[:-1]
+        # checking for mouse movement
+        elif event.type == pygame.MOUSEMOTION:
+            for button in Buttons.buttons:
+                button.hovered = button.rect.collidepoint(event.pos)
+
 
     # background
     background_animation()
@@ -125,7 +141,8 @@ while running:
     pygame.draw.line(triangles_screen, (0, 0, 0), bpos, cpos, width=3)
     pygame.draw.line(triangles_screen, (0, 0, 0), cpos, apos, width=3)
     # draw buttons
-    Buttons.draw()
+    for button in Buttons.buttons:
+        button.draw()
     # entering field
     screen.blit(entering_field_img, entering_field_rect)
     player_answer_surface = robotic_font.render(user_text, True, (255, 255, 0))
