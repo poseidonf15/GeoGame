@@ -32,11 +32,52 @@ class Buttons:
             screen.blit(pygame.transform.scale_by(self.image , current_scale),
                         pygame.transform.scale_by(self.image , current_scale).get_rect(center=self.position))
 
+
+class Cute_cat:
+    """Represents a cat animation"""
+    animation = False
+    def __init__(self, position, target_pos):
+        """Initialize the cat with a given position and a target position"""
+        self.image = pygame.image.load("sprites\cute cat.png")
+        self.target_pos = pygame.math.Vector2(target_pos)
+        self.pos = pygame.math.Vector2(position)
+        self.rect = self.image.get_rect(center=(int(self.pos.x), int(self.pos.y)))
+        self.full_distance = self.pos.distance_to(self.target_pos)
+        self.speed = 10
+
+    def update(self):
+        """Function to update the position of the cat for the movement animation"""
+        if self.pos.distance_to(self.target_pos) < self.speed:
+            Cute_cat.animation = False
+
+        direction = (self.target_pos - self.pos).normalize()
+        self.pos += direction * self.speed
+        self.rect.center = int(self.pos.x), int(self.pos.y)
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+
+    @staticmethod
+    def new_cat():
+        """Static method to create a new cat animation with random coordinates"""
+        global cat
+        Cute_cat.animation = True
+
+        if random.getrandbits(1):
+            position = (random.randint(0, WIDTH), HEIGHT * random.getrandbits(1))
+        else:
+            position = (WIDTH * random.getrandbits(1), random.randint(0, HEIGHT))
+
+        cat = Cute_cat(position, (WIDTH - position[0], HEIGHT - position[1]))
+
+# buttons functions
 def answer_entering():
     """The 'Enter' button function"""
-    global apos, bpos, cpos, result, user_text
+    global apos, bpos, cpos, result, user_text, cat_animation
     if user_text and int(user_text) == result:
         apos, bpos, cpos, result = triangle_create(300)
+        print(result)
+        Cute_cat.new_cat()
     user_text = ""
 
 # fonts
@@ -94,6 +135,10 @@ def to_coordinadtes(pos):
     """Function to translate the triangle position on the screen into graph positions"""
     return (pos[0] - 150) // 15, (pos[1] - 150) // -15
 
+def cat_movement():
+    """Function for the right answers animation"""
+    pass
+
 clock = pygame.time.Clock()
 
 # the main loop
@@ -104,28 +149,30 @@ while running:
         # quiting the game loop
         if event.type == pygame.QUIT:
             running = False
-        # checking for pressed buttons
-        elif event.type == pygame.MOUSEBUTTONDOWN:
-            for button in Buttons.buttons:
-                if button.rect.collidepoint(event.pos):
-                    button.function()
-                    button.active = True
-        # checking for mouse button up
+            # checking for mouse button up
         elif event.type == pygame.MOUSEBUTTONUP:
             for button in Buttons.buttons:
                 button.active = False
-        # checking for player input
-        elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_RETURN:
-                answer_entering()
-            elif event.unicode in "1234567890" and len(user_text) < 3:
-                user_text += event.unicode
-            elif event.key == pygame.K_BACKSPACE:
-                user_text = user_text[:-1]
-        # checking for mouse movement
-        elif event.type == pygame.MOUSEMOTION:
-            for button in Buttons.buttons:
-                button.hovered = button.rect.collidepoint(event.pos)
+        # disabling the event handling while the cat animation is going
+        if not Cute_cat.animation:
+            # checking for pressed buttons
+            if event.type == pygame.MOUSEBUTTONDOWN:
+                for button in Buttons.buttons:
+                    if button.rect.collidepoint(event.pos):
+                        button.function()
+                        button.active = True
+            # checking for player input
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:
+                    answer_entering()
+                elif event.unicode in "1234567890" and len(user_text) < 3:
+                    user_text += event.unicode
+                elif event.key == pygame.K_BACKSPACE:
+                    user_text = user_text[:-1]
+            # checking for mouse movement
+            elif event.type == pygame.MOUSEMOTION:
+                for button in Buttons.buttons:
+                    button.hovered = button.rect.collidepoint(event.pos)
 
 
     # background
@@ -155,6 +202,10 @@ while running:
     coordinates_surface_background_rect = coordinates_surface_background.get_rect(center=coordinates_surface_rect.center)
     screen.blit(coordinates_surface_background, coordinates_surface_background_rect)
     screen.blit(coordinates_surface, coordinates_surface_rect)
+
+    if Cute_cat.animation:
+        cat.update()
+        cat.draw(screen)
 
     # the fps and update of the screen
     clock.tick(60)
