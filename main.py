@@ -6,6 +6,9 @@ pygame.init()
 screen_into = pygame.display.Info()
 WIDTH, HEIGHT = 500, 500
 screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("Geo Game")
+icon = pygame.image.load("sprites/page_icon.png")
+pygame.display.set_icon(icon)
 
 class Buttons:
     """Represents buttons logic"""
@@ -32,6 +35,18 @@ class Buttons:
             screen.blit(pygame.transform.scale_by(self.image , current_scale),
                         pygame.transform.scale_by(self.image , current_scale).get_rect(center=self.position))
 
+# buttons functions
+def answer_entering():
+    """The 'Enter' button function"""
+    global apos, bpos, cpos, result, user_text, coin, score
+    if user_text and int(user_text) == result:
+        apos, bpos, cpos, result = triangle_create(300)
+        print(result)
+        Cute_cat.new_cat()
+        coin = Coin()
+        Coin.animation = True
+        score += 1
+    user_text = ""
 
 class Cute_cat:
     """Represents a cat animation"""
@@ -70,25 +85,40 @@ class Cute_cat:
 
         cat = Cute_cat(position, (WIDTH - position[0], HEIGHT - position[1]))
 
-# buttons functions
-def answer_entering():
-    """The 'Enter' button function"""
-    global apos, bpos, cpos, result, user_text, cat_animation
-    if user_text and int(user_text) == result:
-        apos, bpos, cpos, result = triangle_create(300)
-        print(result)
-        Cute_cat.new_cat()
-    user_text = ""
+class Coin:
+    animation = False
+    def __init__(self):
+        self.distance = 10
+        self.image = pygame.image.load("sprites/coin.png")
+        self.image = pygame.transform.scale_by(self.image, 0.4)
+        self.rect = self.image.get_rect(center=piggy_rect.center)
+
+    def update(self):
+        self.rect = self.image.get_rect(center=(piggy_rect.centerx, piggy_rect.centery - self.distance))
+        self.distance += 2.5
+
+        if self.distance >= 75:
+            self.animation = False
+        else:
+            screen.blit(self.image, self.rect)
 
 # fonts
 main_font = pygame.font.SysFont("Arial", 20)
 robotic_font = pygame.font.Font("fonts/PressStart2P-Regular.ttf", 32)
 user_text = ""
+score_font = pygame.font.Font("fonts/PressStart2P-Regular.ttf", 24)
 
 # background
 background_img = pygame.image.load("sprites/unicron background.jpg").convert()
 background_rect = background_img.get_rect(topleft = (0,0))
 background2_rect = background_img.get_rect(topleft = (500,0))
+
+# scoring
+with open("score.txt", "r") as score_file:
+    score = int(score_file.read())
+piggy_image = pygame.image.load("sprites/piggy.png").convert_alpha()
+piggy_image = pygame.transform.scale_by(piggy_image, 0.35)
+piggy_rect = piggy_image.get_rect(center=(450,420))
 
 # triangles screen
 triangles_screen_rect = pygame.Rect((100, 60), (300, 310))
@@ -148,6 +178,8 @@ while running:
     for event in pygame.event.get():
         # quiting the game loop
         if event.type == pygame.QUIT:
+            with open("score.txt", "w") as score_file:
+                score_file.write(str(score))
             running = False
             # checking for mouse button up
         elif event.type == pygame.MOUSEBUTTONUP:
@@ -179,6 +211,16 @@ while running:
     background_animation()
     screen.blit(background_img,background_rect)
     screen.blit(background_img,background2_rect)
+    # score coin animation
+    if Coin.animation:
+        coin.update()
+    # score
+    screen.blit(piggy_image, piggy_rect)
+    score_surf = score_font.render(str(score), True, (255, 255, 0))
+    score_rect = score_surf.get_rect(center=(piggy_rect.center[0],
+                                                      piggy_rect.center[1] + (piggy_rect.height / 2) + 10 + (score_surf.get_height() / 2)))
+    screen.blit(score_surf, score_rect)
+
     # triangle drawing background
     screen.blit(triangles_screen, (triangles_screen_rect.x, triangles_screen_rect.y))
     triangles_screen.blit(scaled_graph_img, (0, 0))
@@ -202,7 +244,7 @@ while running:
     coordinates_surface_background_rect = coordinates_surface_background.get_rect(center=coordinates_surface_rect.center)
     screen.blit(coordinates_surface_background, coordinates_surface_background_rect)
     screen.blit(coordinates_surface, coordinates_surface_rect)
-
+    # cute cat celebrating animation
     if Cute_cat.animation:
         cat.update()
         cat.draw(screen)
